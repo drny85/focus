@@ -15,13 +15,13 @@ A cinematic focus space for a very large television. Pick a place, pick a sessio
 
 ## The experience
 
-- **Three places**, each drawn live on canvas with its own light, palette and slow motion: the *Reading Room* (rain running down a library window), the *Night Train* (hills and passing poles under a moon), and the *Dusk Field* (layered hills, mist and drifting light).
+- **Four places**, each drawn live on canvas with its own light, palette and slow motion: the *Reading Room* (rain running down a library window), the *Night Train* (hills and passing poles under a moon), the *Dusk Field* (layered hills, mist and drifting light), and the *Fire Pit* (a flickering campfire, rising embers and pines under the stars).
 - **Three sessions**: Sprint (25 min, 5 min break), Deep work (50 min, 10 min break), Quick reset (10 min, 3 min break).
 - **Focus screen**: the task, a 330px countdown whose digits cross-fade instead of ticking, and only Pause/Resume, End, Sound and Scene. Controls dim after a few quiet seconds and wake on any key.
 - **Transitions**: scenes cross-fade with a depth and blur shift and a wash of the new scene's light; sessions start with the room settling into focus; a finished session warms the scene before the break screen.
-- **Progress without pressure**: each completed session changes its place for good. More windows light up across the street, more stars come out over the train, more flowers open in the dusk field. No streaks, no scores.
+- **Progress without pressure**: each completed session changes its place for good. More windows light up across the street, more stars come out over the train, more flowers open in the dusk field, more lanterns glow along the fire pit's tree line. No streaks, no scores.
 - **Breaks**: an eye-rest or stretch prompt with a slow breathing guide, then clear choices to continue or finish.
-- **Sound**: Silence, Rain on glass, Night carriage, Evening wind. All generated with Web Audio (no audio files), with its own volume. The timer and interface never make a sound; the end-of-session chime can be turned off.
+- **Sound**: Silence, Rain on glass, Night carriage, Evening wind, Fireside. All generated with Web Audio (no audio files), with its own volume. The timer and interface never make a sound; the end-of-session chime can be turned off.
 - **Task entry without typing**: eight quick picks, an on-screen keyboard driven by the D-pad, and (in the Claude Artifact) a phone companion: scan the QR code, type on the phone, and the task appears on the TV.
 
 ## Remote controls

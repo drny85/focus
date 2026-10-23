@@ -102,9 +102,9 @@ body.mode-focus #scrim { opacity: .82; }
 .choice .name { font-size: 34px; font-weight: 500; color: var(--ink); align-self: end; }
 .choice .desc { font-size: 24px; color: var(--ink-faint); align-self: start; margin-top: 4px; }
 .choice.is-focused .desc { color: var(--ink-soft); }
-#home .places { position: absolute; left: var(--safe-x); bottom: var(--safe-y); right: var(--safe-x); display: flex; align-items: flex-end; gap: 20px; }
-.places .eyebrow { margin-right: 18px; padding-bottom: 22px; }
-.place { padding: 16px 32px 18px; border-radius: 28px; text-align: left; }
+#home .places { position: absolute; left: var(--safe-x); bottom: var(--safe-y); right: var(--safe-x); display: flex; align-items: flex-end; gap: 8px; }
+.places .eyebrow { margin-right: 10px; padding-bottom: 22px; }
+.place { padding: 16px 28px 18px; border-radius: 28px; text-align: left; }
 .place .pn { font-family: var(--font-display); font-size: 44px; font-weight: 500; color: var(--ink); display: flex; align-items: center; gap: 14px; }
 .place .pn i { width: 12px; height: 12px; border-radius: 50%; background: rgb(var(--accent-rgb)); box-shadow: 0 0 18px rgba(var(--accent-rgb), .9); opacity: 0; transition: opacity .6s; }
 .place.selected .pn i { opacity: 1; }
@@ -284,6 +284,7 @@ body.phone-mode { overflow: auto; background: #0b0909; }
         <button class="tv place" data-nav data-act="scene" data-scene="library"><div class="pn"><i></i>Reading Room</div><div class="pd">Rain on a library window</div></button>
         <button class="tv place" data-nav data-act="scene" data-scene="train"><div class="pn"><i></i>Night Train</div><div class="pd">A quiet carriage after dark</div></button>
         <button class="tv place" data-nav data-act="scene" data-scene="dusk"><div class="pn"><i></i>Dusk Field</div><div class="pd">Hills at the last light</div></button>
+        <button class="tv place" data-nav data-act="scene" data-scene="fire"><div class="pn"><i></i>Fire Pit</div><div class="pd">Embers under the pines</div></button>
       </div>
     </section>
 
@@ -396,7 +397,7 @@ body.phone-mode { overflow: auto; background: #0b0909; }
         <button class="tv slider" data-nav data-act="volume" id="volSlider"><span class="arrows">◀</span><span class="track"><span></span><b></b></span><span class="arrows">▶</span><span class="val">50%</span></button>
         <div class="eyebrow section-lbl">When a session ends</div>
         <div class="list" id="chimeList"></div>
-        <p class="note">The timer and the interface stay silent. Ambience is the only sound, and only if you choose it.</p>
+        <p class="note">The timer and the interface always stay silent.</p>
       </div>
     </div>
 
@@ -465,12 +466,15 @@ const SCENES = {
     reveal: ["New stars have come out over the hills.", "The sky is filling in, one star at a time.", "A few more stars are keeping you company."] },
   dusk: { name: "Dusk Field", accent: [255, 172, 140], sound: "wind",
     reveal: ["Something new is blooming in the field.", "The garden at the edge of the hills is growing.", "A few more flowers have opened in the dusk."] },
+  fire: { name: "Fire Pit", accent: [255, 150, 92], sound: "fire",
+    reveal: ["Another lantern glows along the tree line.", "The string of lights stretches a little further.", "One more lantern is lit for you tonight."] },
 };
 const SOUNDS = [
   { id: "silence", name: "Silence", sub: "" },
   { id: "rain", name: "Rain on glass", sub: "Soft, steady" },
   { id: "train", name: "Night carriage", sub: "Low hum, slow rhythm" },
   { id: "wind", name: "Evening wind", sub: "Wide and airy" },
+  { id: "fire", name: "Fireside", sub: "Soft crackle, low hush" },
 ];
 const TASK_PICKS = [
   "Draft the Q3 roadmap memo", "Review the onboarding pull request", "Read chapter 7: consensus protocols",
@@ -496,7 +500,7 @@ const today = () => new Date().toDateString();
 const defaults = () => ({
   task: "Draft the Q3 roadmap memo", scene: "library", sound: "silence", volume: 0.5, chime: "soft",
   // Earlier evenings in each room, so the environments start a little lived-in.
-  grown: { library: 3, train: 2, dusk: 2 },
+  grown: { library: 3, train: 2, dusk: 2, fire: 2 },
   night: { date: today(), sessions: 0, minutes: 0, byScene: {} },
 });
 let S = defaults();
@@ -780,7 +784,112 @@ function makeDusk() {
   };
 }
 
-const sceneMakers = { library: makeLibrary, train: makeTrain, dusk: makeDusk };
+function makeFire() {
+  const fx = 600, fy = 404; // the fire's base
+  const r = rng(61);
+  let sky = null, trees = null, ground = null;
+  // a string of lanterns between the trees; each finished session lights another
+  const lanterns = Array.from({ length: 22 }, (_, i) => { const u = i / 21; return { u, rank: rng(300 + i)() }; })
+    .map((l, i) => ({ ...l, order: i })).sort((a, b) => a.rank - b.rank).map((l, i) => ({ ...l, lit: i }));
+  function stringY(u) { return 96 + u * 34 + Math.sin(u * Math.PI * 2) * 0 + Math.sin(u * Math.PI) * 54; }
+  function renderSky() {
+    const c = off(W + 80, H + 40), g = c.getContext("2d");
+    const gr = g.createLinearGradient(0, 0, 0, c.height); gr.addColorStop(0, "#04060c"); gr.addColorStop(.55, "#0b1020"); gr.addColorStop(1, "#1a1418");
+    g.fillStyle = gr; g.fillRect(0, 0, c.width, c.height);
+    const rs = rng(17); for (let i = 0; i < 140; i++) { const b = rs(); g.fillStyle = `rgba(225,228,255,${.15 + b * .55})`; g.beginPath(); g.arc(rs() * c.width, rs() * 280, .4 + b * b * 1.1, 0, 7); g.fill(); }
+    sky = c;
+  }
+  function renderTrees() {
+    const c = off(W + 80, H + 40), g = c.getContext("2d"); const rt = rng(23);
+    g.fillStyle = "#06080d";
+    for (let x = -20; x < c.width + 20; x += 8 + rt() * 16) { const h = 70 + rt() * 120 + (Math.abs(x - fx - 40) < 220 ? -40 : 30), base = 330 + rt() * 10, w = 22 + rt() * 22;
+      g.beginPath(); g.moveTo(x - w / 2, base); for (let k = 0; k < 6; k++) { const yy = base - h * (k / 6), ww = w * (1 - k / 6); g.lineTo(x - ww / 2 - 4, yy); g.lineTo(x - ww / 4, yy - h / 10); } g.lineTo(x, base - h);
+      for (let k = 5; k >= 0; k--) { const yy = base - h * (k / 6), ww = w * (1 - k / 6); g.lineTo(x + ww / 4, yy - h / 10); g.lineTo(x + ww / 2 + 4, yy); } g.closePath(); g.fill(); }
+    g.fillRect(0, 334, c.width, c.height);
+    // tall trunks framing the clearing
+    g.fillStyle = "#040509"; g.fillRect(70, 0, 26, 360); g.fillRect(860, 0, 30, 360);
+    trees = c;
+  }
+  function renderGround() {
+    const c = off(W + 60, H + 30), g = c.getContext("2d"); const P = 30;
+    const gr = g.createLinearGradient(0, 322, 0, c.height); gr.addColorStop(0, "rgba(13,11,13,0)"); gr.addColorStop(.12, "#0d0b0d"); gr.addColorStop(1, "#050405");
+    g.fillStyle = gr; g.fillRect(0, 322, c.width, c.height);
+    // stones around the pit
+    const rs = rng(91); for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2, sx = fx + P + Math.cos(a) * 96, sy = fy + 8 + Math.sin(a) * 22, front = Math.sin(a) > 0;
+      const sw = 26 + rs() * 12, sh = 14 + rs() * 7;
+      g.fillStyle = front ? "#1d1714" : "#151112"; g.beginPath(); g.ellipse(sx, sy, sw / 2, sh / 2, 0, 0, 7); g.fill();
+      g.fillStyle = front ? "rgba(255,150,80,.08)" : "rgba(255,150,80,.35)"; g.beginPath(); g.ellipse(sx, sy - sh * .22, sw * .38, sh * .22, 0, 0, 7); g.fill(); }
+    // logs
+    g.lineCap = "round"; g.strokeStyle = "#2a1a12"; g.lineWidth = 15;
+    g.beginPath(); g.moveTo(fx + P - 70, fy + 10); g.lineTo(fx + P + 50, fy - 8); g.stroke();
+    g.beginPath(); g.moveTo(fx + P + 72, fy + 12); g.lineTo(fx + P - 44, fy - 10); g.stroke();
+    g.strokeStyle = "rgba(255,120,50,.55)"; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(fx + P - 40, fy + 1); g.lineTo(fx + P + 30, fy - 9); g.stroke();
+    // a log bench in the foreground
+    g.fillStyle = "#0b0807"; g.beginPath(); g.ellipse(250 + P, 486, 190, 30, -.04, 0, 7); g.fill();
+    g.fillStyle = "rgba(255,140,70,.16)"; g.beginPath(); g.ellipse(270 + P, 466, 160, 7, -.04, 0, 7); g.fill();
+    ground = c;
+  }
+  const tongues = Array.from({ length: 9 }, (_, i) => ({ x: (i - 4) * 9 + (r() - .5) * 6, w: 16 + r() * 12, h: 70 + r() * 60 - Math.abs(i - 4) * 9, p: r() * 20, s: .8 + r() * .7 }));
+  const embers = Array.from({ length: 16 }, () => ({ x: 0, y: 0, vy: 0, life: 0, max: 1, p: 0 }));
+  embers.forEach(e => { e.life = Math.random() * 4; e.max = 4; });
+  const flameBuf = off(240, 240), fg = flameBuf.getContext("2d");
+  const wob = (t, p, s) => Math.sin(t * 1.7 * s + p) * .5 + Math.sin(t * 2.9 * s + p * 1.7) * .3 + Math.sin(t * .7 + p * .3) * .2;
+  return {
+    id: "fire",
+    render(ctx, dt, t, env) {
+      if (!sky) { renderSky(); renderTrees(); renderGround(); }
+      const ox = -env.px, oy = -env.py;
+      const flick = .82 + wob(t * .6, 1, 1) * .08 + wob(t * 1.3, 4, 1) * .04;
+      ctx.drawImage(sky, -40 + ox * 6, -20 + oy * 3);
+      // warm light reaching the trees
+      const reach = ctx.createRadialGradient(fx + ox * 12, fy, 20, fx + ox * 12, fy - 40, 520);
+      reach.addColorStop(0, `rgba(255,130,60,${.42 * flick})`); reach.addColorStop(.4, `rgba(200,80,40,${.14 * flick})`); reach.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.drawImage(trees, -40 + ox * 12, -20 + oy * 6);
+      ctx.globalCompositeOperation = "lighter"; ctx.fillStyle = reach; ctx.fillRect(0, 0, W, H); ctx.globalCompositeOperation = "source-over";
+      // lanterns strung between the trunks
+      const lit = Math.min(lanterns.length, 3 + env.grown * 2);
+      const lx0 = 96 + ox * 14, lx1 = 860 + ox * 14, ly = oy * 7;
+      ctx.strokeStyle = "rgba(20,16,16,.9)"; ctx.lineWidth = 1.2; ctx.beginPath();
+      for (let i = 0; i <= 40; i++) { const u = i / 40; const x = lerp(lx0, lx1, u), y = stringY(u) + ly; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke();
+      for (const l of lanterns) { const x = lerp(lx0, lx1, l.u), y = stringY(l.u) + ly + 6;
+        if (l.lit < lit) { const gl = ctx.createRadialGradient(x, y, 0, x, y, 16); gl.addColorStop(0, "rgba(255,214,150,.95)"); gl.addColorStop(.25, "rgba(255,170,90,.45)"); gl.addColorStop(1, "rgba(255,150,80,0)");
+          ctx.fillStyle = gl; ctx.fillRect(x - 16, y - 16, 32, 32); }
+        else { ctx.fillStyle = "rgba(40,32,30,.9)"; ctx.beginPath(); ctx.arc(x, y, 2.4, 0, 7); ctx.fill(); } }
+      const gx = ox * 22, gy = oy * 10;
+      ctx.drawImage(ground, -30 + gx, gy);
+      // pool of firelight on the ground
+      const pool = ctx.createRadialGradient(fx + gx, fy + 10 + gy, 10, fx + gx, fy + 10 + gy, 300);
+      pool.addColorStop(0, `rgba(255,140,60,${.5 * flick})`); pool.addColorStop(.5, `rgba(180,70,30,${.12 * flick})`); pool.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.globalCompositeOperation = "lighter"; ctx.fillStyle = pool; ctx.fillRect(fx - 320 + gx, fy - 200 + gy, 640, 360); ctx.globalCompositeOperation = "source-over";
+      // flames, drawn soft into a small buffer then added
+      const tt = t * (.55 + env.pace * .45);
+      fg.globalCompositeOperation = "source-over"; fg.clearRect(0, 0, 240, 240); fg.globalCompositeOperation = "lighter";
+      for (const f of tongues) { const h = f.h * (.82 + wob(tt, f.p, f.s) * .22), sway = wob(tt * .8, f.p + 3, f.s) * 7, bx = 120 + f.x, by = 220;
+        const gr = fg.createLinearGradient(0, by, 0, by - h); gr.addColorStop(0, "rgba(255,236,190,.9)"); gr.addColorStop(.25, "rgba(255,176,80,.75)"); gr.addColorStop(.65, "rgba(230,90,40,.45)"); gr.addColorStop(1, "rgba(160,40,20,0)");
+        fg.fillStyle = gr; fg.beginPath(); fg.moveTo(bx - f.w / 2, by);
+        fg.bezierCurveTo(bx - f.w * .7, by - h * .45, bx + sway - f.w * .15, by - h * .7, bx + sway * 1.6, by - h);
+        fg.bezierCurveTo(bx + sway + f.w * .15, by - h * .7, bx + f.w * .7, by - h * .45, bx + f.w / 2, by); fg.fill(); }
+      ctx.save(); ctx.globalCompositeOperation = "lighter"; ctx.filter = "blur(1.5px)";
+      ctx.drawImage(flameBuf, fx - 120 + gx, fy - 212 + gy); ctx.restore();
+      // the bed of coals hides the flames' base
+      const coals = ctx.createRadialGradient(fx + gx, fy + 4 + gy, 2, fx + gx, fy + 4 + gy, 74);
+      coals.addColorStop(0, `rgba(255,190,110,${.95 * flick})`); coals.addColorStop(.35, "rgba(220,80,30,.85)"); coals.addColorStop(.75, "rgba(70,22,12,.9)"); coals.addColorStop(1, "rgba(20,10,8,0)");
+      ctx.save(); ctx.translate(fx + gx, fy + 4 + gy); ctx.scale(1, .2); ctx.translate(-(fx + gx), -(fy + 4 + gy));
+      ctx.fillStyle = coals; ctx.beginPath(); ctx.arc(fx + gx, fy + 4 + gy, 74, 0, 7); ctx.fill(); ctx.restore();
+      const core = ctx.createRadialGradient(fx + gx, fy - 14 + gy, 2, fx + gx, fy - 14 + gy, 60); core.addColorStop(0, `rgba(255,220,160,${.45 * flick})`); core.addColorStop(1, "rgba(255,150,80,0)");
+      ctx.globalCompositeOperation = "lighter"; ctx.fillStyle = core; ctx.fillRect(fx - 60 + gx, fy - 74 + gy, 120, 120);
+      // a few embers drifting up
+      for (const e of embers) { e.life += dt * env.pace;
+        if (e.life >= e.max) { e.life = 0; e.max = 2.5 + Math.random() * 3; e.x = fx + (Math.random() - .5) * 50; e.y = fy - 30; e.vy = 18 + Math.random() * 22; e.p = Math.random() * 6; }
+        e.y -= e.vy * dt * env.pace; const x = e.x + Math.sin(e.life * 1.4 + e.p) * 10 + gx * .8, a = Math.sin(Math.PI * e.life / e.max) * .8;
+        ctx.fillStyle = `rgba(255,${150 + (e.p * 10 | 0)},80,${a})`; ctx.beginPath(); ctx.arc(x, e.y + gy, 1.1, 0, 7); ctx.fill(); }
+      ctx.globalCompositeOperation = "source-over";
+    },
+  };
+}
+
+const sceneMakers = { library: makeLibrary, train: makeTrain, dusk: makeDusk, fire: makeFire };
 const sceneObjs = {};
 const getScene = id => sceneObjs[id] || (sceneObjs[id] = sceneMakers[id]());
 const canvases = [$("#cvA"), $("#cvB")];
@@ -1171,6 +1280,17 @@ const audio = (() => {
       const l = lfo(.55, .18, g.gain);
       const b = src(noise.pink), bp = filt("bandpass", 900, .5), g2 = ctx.createGain(); g2.gain.value = .06; b.connect(bp).connect(g2).connect(out);
       const l2 = lfo(.13, 400, bp.frequency); return [a, b, l, l2]; },
+    fire(out) { const a = src(noise.brown), lp = filt("lowpass", 420), g = ctx.createGain(); g.gain.value = .75; a.connect(lp).connect(g).connect(out);
+      const l = lfo(.11, .15, g.gain);
+      const b = src(noise.pink), hp = filt("highpass", 2200), g2 = ctx.createGain(); g2.gain.value = .025; b.connect(hp).connect(g2).connect(out);
+      let alive = true;
+      const pop = () => { if (!alive) return; const t = ctx.currentTime, s = ctx.createBufferSource(); s.buffer = noise.white;
+        const bp = filt("bandpass", 1200 + Math.random() * 2800, 1.4), e = ctx.createGain(), amp = .08 + Math.random() * .22;
+        e.gain.setValueAtTime(0, t); e.gain.linearRampToValueAtTime(amp, t + .003); e.gain.exponentialRampToValueAtTime(.0001, t + .03 + Math.random() * .07);
+        s.connect(bp).connect(e).connect(out); s.start(t, Math.random() * 5, .12);
+        setTimeout(pop, Math.random() < .25 ? 40 + Math.random() * 90 : 180 + Math.random() * 900); };
+      pop();
+      return [a, b, l, { stop() { alive = false; } }]; },
     wind(out) { const a = src(noise.pink), bp = filt("bandpass", 520, .9), g = ctx.createGain(); g.gain.value = .9; a.connect(bp).connect(g).connect(out);
       const l = lfo(.045, 260, bp.frequency), l2 = lfo(.07, .25, g.gain);
       const b = src(noise.brown), lp = filt("lowpass", 160), g2 = ctx.createGain(); g2.gain.value = .3; b.connect(lp).connect(g2).connect(out); return [a, b, l, l2]; },
