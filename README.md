@@ -36,6 +36,16 @@ A cinematic focus space for a very large television. Pick a place, pick a sessio
 
 ## Run it on Google TV
 
+**Easiest:** install the [Downloader](https://www.aftvnews.com/downloader/) app on the TV, allow it to install unknown apps (Settings → Apps → Security & restrictions → Unknown sources), and enter:
+
+```
+https://github.com/drny85/focus/releases/latest/download/focus.apk
+```
+
+Every push rebuilds the APK and publishes it at that same link, and new builds install over old ones.
+
+**Or with adb:**
+
 1. Download the APK from the latest **Android TV APK** workflow run (or build it yourself with `node scripts/build.mjs && gradle -p android-tv assembleDebug`, Gradle 8.7+, JDK 17, Android SDK 34).
 2. On the TV, turn on developer options (Settings → System → About → click *Android TV OS build* seven times) and enable USB/network debugging.
 3. `adb connect <tv-ip>` then `adb install app-debug.apk`. The app appears in Apps with its own banner.

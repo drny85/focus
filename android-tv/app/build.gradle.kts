@@ -11,8 +11,20 @@ android {
         applicationId = "app.roomsizedfocus"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        // CI builds count up so each release installs over the last one
+        versionCode = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
+        versionName = "1.0." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
+    }
+
+    // A fixed debug key (committed on purpose, it guards nothing) so every
+    // sideloaded build can update the previous one on the TV.
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
     }
 
     buildTypes {
