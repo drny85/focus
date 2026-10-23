@@ -1,0 +1,54 @@
+name: Android TV APK
+
+on:
+  push:
+    branches: [main, claude/room-sized-focus]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Bundle the web app into the APK assets
+        run: node scripts/build.mjs
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Build debug APK
+        run: gradle -p android-tv assembleDebug --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: room-sized-focus-debug-apk
+          path: android-tv/app/build/outputs/apk/debug/*.apk
+
+      # Every push publishes the APK as the latest release, so a TV can install it
+      # from https://github.com/drny85/focus/releases/latest/download/focus.apk
+      - name: Publish release for sideloading
+        if: github.event_name == 'push'
+        run: |
+          cp android-tv/app/build/outputs/apk/debug/app-debug.apk focus.apk
+          gh release create "tv-${{ github.run_number }}" focus.apk \
+            --target "${{ github.sha }}" \
+            --title "Room-Sized Focus for Google TV (build ${{ github.run_number }})" \
+            --notes "Install on Google TV with the Downloader app: https://github.com/drny85/focus/releases/latest/download/focus.apk" \
+            --latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
